@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Smooth scrolling and offset for anchor targets to account for fixed navbar */
+html {
+	scroll-behavior: smooth;
+}
+
+:target {
+	/* Match the fixed navbar height (h-16 = 4rem). Adjust if your header height changes. */
+	scroll-margin-top: 4rem;
+}
