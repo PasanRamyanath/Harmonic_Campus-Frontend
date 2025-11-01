@@ -9,10 +9,27 @@ import Footer from '../components/Footer';
 import { useState } from 'react';
 import SignupModal from '../components/SignupModal';
 import LoginModal from '../components/LoginModal';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function LandingPage() {
   const [showSignup, setShowSignup] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const location = useLocation();
+
+  // When a hash is present (e.g. /#about) ensure we scroll to the target after mount
+  useEffect(() => {
+    if (!location.hash) return;
+    // Only attempt when on root path
+    if (location.pathname !== '/') return;
+    const id = location.hash.replace('#', '');
+    // small timeout to allow sections to render/layout (helps when navigating from other routes)
+    const t = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [location]);
   return (
     <div className="min-h-screen">
   <Navbar onOpenSignup={() => setShowSignup(true)} onOpenLogin={() => setShowLogin(true)} />

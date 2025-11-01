@@ -8,6 +8,7 @@ type AuthContextValue = {
   signIn: (creds: { email: string; password: string }) => Promise<any>;
   signUp: (data: { name: string; email: string; password: string; role?: string }) => Promise<any>;
   signOut: () => Promise<void>;
+  updateProfile?: (updates: any) => Promise<any>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -61,8 +62,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAppUser(null);
   };
 
+  const updateProfile = async (updates: any) => {
+    if (!appUser || !appUser._id) throw new Error('No authenticated app user');
+    const { updateUserRecord } = await import('../api/authApi');
+    const updated = await updateUserRecord(appUser._id, updates);
+    setAppUser(updated);
+    return updated;
+  };
+
   return (
-    <AuthContext.Provider value={{ firebaseUser, appUser, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ firebaseUser, appUser, loading, signIn, signUp, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
