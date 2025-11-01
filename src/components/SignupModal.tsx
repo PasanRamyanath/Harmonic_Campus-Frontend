@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { signUpWithEmail, signUpWithGoogle } from '../firebaseClient';
+import InterestsModal from './InterestsModal';
 
 export default function SignupModal({ onClose }: { onClose?: () => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'student' | 'teacher' | 'admin'>('student');
+  const [createdUser, setCreatedUser] = useState<any | null>(null);
+  const [showInterests, setShowInterests] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -15,12 +18,12 @@ export default function SignupModal({ onClose }: { onClose?: () => void }) {
     setError(null);
     setLoading(true);
     try {
-      await signUpWithEmail({ name, email, password, role });
+      const res: any = await signUpWithEmail({ name, email, password, role });
+      const created: any = res?.userRecord || res?.appUser || res;
+      setCreatedUser(created || null);
+      setShowInterests(true);
       setSuccess(true);
-      setTimeout(() => {
-        setLoading(false);
-        onClose?.();
-      }, 800);
+      setLoading(false);
     } catch (err: any) {
       setError(err.message || 'Signup failed');
       setLoading(false);
@@ -31,12 +34,12 @@ export default function SignupModal({ onClose }: { onClose?: () => void }) {
     setError(null);
     setLoading(true);
     try {
-      await signUpWithGoogle();
+      const res: any = await signUpWithGoogle();
+      const created: any = res?.userRecord || res?.appUser || res;
+      setCreatedUser(created || null);
+      setShowInterests(true);
       setSuccess(true);
-      setTimeout(() => {
-        setLoading(false);
-        onClose?.();
-      }, 800);
+      setLoading(false);
     } catch (err: any) {
       setError(err?.message || 'Google signup failed');
       setLoading(false);
@@ -60,6 +63,7 @@ export default function SignupModal({ onClose }: { onClose?: () => void }) {
                 Continue with Google
               </button>
             </div>
+            {/* interests are collected after account creation via popup */}
             <div className="text-center text-sm text-gray-500">or sign up with email</div>
             <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -93,6 +97,14 @@ export default function SignupModal({ onClose }: { onClose?: () => void }) {
             </div>
           </form>
             </div>
+        )}
+        {showInterests && createdUser && (
+          <InterestsModal
+            userId={createdUser._id || createdUser.id}
+            existing={createdUser.profile?.interests || []}
+            onClose={() => { setShowInterests(false); onClose?.(); }}
+            onSaved={() => { setShowInterests(false); onClose?.(); }}
+          />
         )}
       </div>
     </div>

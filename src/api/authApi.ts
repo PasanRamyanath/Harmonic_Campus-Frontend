@@ -11,3 +11,8 @@ export const getUserByFirebaseUid = async (uid: string) => {
   const res = await axios.get(`${API_BASE}/api/users/firebase/${uid}`);
   return res.data;
 };
+
+export const updateUserRecord = async (id: string, updates: any) => {
+  const res = await axios.patch(`${API_BASE}/api/users/${id}`, updates);
+  return res.data;
+};
