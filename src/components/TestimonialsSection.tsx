@@ -4,14 +4,14 @@ export default function TestimonialsSection() {
       name: 'Emma Wilson',
       role: 'Guitar Student',
       image: '👩',
-      text: 'HarmonicCampus transformed my guitar playing! The AI feedback helped me fix my technique, and the teachers are incredibly supportive.',
+      text: 'HarmonicCampus transformed my guitar playing! The AI feedback helped me fix my technique, and the instructors are incredibly supportive.',
       rating: 5
     },
     {
       name: 'James Martinez',
-      role: 'Piano Teacher',
+      role: 'Piano Instructor',
       image: '👨',
-      text: 'As a teacher, this platform gives me all the tools I need to reach students worldwide. The dashboard is intuitive and powerful.',
+      text: 'As an instructor, this platform gives me all the tools I need to reach students worldwide. The dashboard is intuitive and powerful.',
       rating: 5
     },
     {
