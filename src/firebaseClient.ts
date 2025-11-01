@@ -28,7 +28,7 @@ if (!getApps().length) {
 
 const auth = getAuth();
 
-export async function signUpWithEmail({ name, email, password, role = 'student' }: { name: string; email: string; password: string; role?: string; }) {
+export async function signUpWithEmail({ name, email, password, role = 'student', interests = [] }: { name: string; email: string; password: string; role?: string; interests?: string[] }) {
   if (!firebaseConfig.apiKey) {
     throw new Error('Firebase is not configured. Set VITE_FIREBASE_API_KEY and other env vars.');
   }
@@ -49,12 +49,13 @@ export async function signUpWithEmail({ name, email, password, role = 'student' 
     email,
     firebaseUid: user.uid,
     role,
+    profile: { interests },
     createdAt: new Date().toISOString()
   };
 
-  await createUserRecord(userRecord);
+  const created = await createUserRecord(userRecord);
 
-  return { firebaseUser: user, userRecord };
+  return { firebaseUser: user, userRecord: created };
 }
 
 export async function signInWithEmail({ email, password }: { email: string; password: string; }) {
@@ -112,7 +113,7 @@ export async function signInWithGoogle() {
   }
 }
 
-export async function signUpWithGoogle() {
+export async function signUpWithGoogle({ interests = [] }: { interests?: string[] } = {}) {
   // Signup flow: sign in with Google and create app user if missing.
   if (!firebaseConfig.apiKey) {
     throw new Error('Firebase is not configured. Set VITE_FIREBASE_API_KEY and other env vars.');
@@ -129,10 +130,11 @@ export async function signUpWithGoogle() {
   } catch (err: any) {
     if (err?.response?.status === 404) {
       const userRecord = {
-        name: user.displayName || '',
+        name: user.displayName || (user.email ? user.email.split('@')[0] : ''),
         email: user.email,
         firebaseUid: user.uid,
         role: 'student',
+        profile: { interests },
         createdAt: new Date().toISOString()
       };
       const appUser = await createUserRecord(userRecord);

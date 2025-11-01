@@ -4,7 +4,7 @@ export default function HeroSection() {
       {/* Background video covering full width */}
       <video
         className="absolute left-0 top-0 w-full h-full object-cover md:object-contain" 
-        src="/hero.mp4"
+        src="/favicon.png"
         autoPlay
         muted
         loop
