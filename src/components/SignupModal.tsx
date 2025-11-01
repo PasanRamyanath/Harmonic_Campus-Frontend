@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { signUpWithEmail, signUpWithGoogle } from '../firebaseClient';
 import InterestsModal from './InterestsModal';
+import InstrumentsModal from './InstrumentsModal';
 
 export default function SignupModal({ onClose }: { onClose?: () => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'student' | 'teacher' | 'admin'>('student');
+  const [role, setRole] = useState<'student' | 'instructor' | 'admin'>('student');
   const [createdUser, setCreatedUser] = useState<any | null>(null);
   const [showInterests, setShowInterests] = useState(false);
+  const [showInstruments, setShowInstruments] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -82,7 +84,7 @@ export default function SignupModal({ onClose }: { onClose?: () => void }) {
               <label className="block text-sm font-medium text-gray-700">Role</label>
               <select value={role} onChange={e => setRole(e.target.value as any)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
                 <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
+                <option value="instructor">Instructor</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
@@ -103,7 +105,21 @@ export default function SignupModal({ onClose }: { onClose?: () => void }) {
             userId={createdUser._id || createdUser.id}
             existing={createdUser.profile?.interests || []}
             onClose={() => { setShowInterests(false); onClose?.(); }}
-            onSaved={() => { setShowInterests(false); onClose?.(); }}
+            onSaved={(updated) => {
+              // after interests saved, open instruments modal
+              setShowInterests(false);
+              setCreatedUser(updated);
+              setShowInstruments(true);
+            }}
+          />
+        )}
+
+        {showInstruments && createdUser && (
+          <InstrumentsModal
+            userId={createdUser._id || createdUser.id}
+            existing={createdUser.profile?.instruments || []}
+            onClose={() => { setShowInstruments(false); onClose?.(); }}
+            onSaved={() => { setShowInstruments(false); onClose?.(); }}
           />
         )}
       </div>

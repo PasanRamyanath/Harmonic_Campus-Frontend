@@ -9,7 +9,7 @@ export default function AboutSection() {
               About <span className="text-purple-600">HarmonicCampus</span>
             </h2>
             <p className="text-lg text-gray-700 leading-relaxed">
-              HarmonicCampus is a revolutionary music learning platform that combines the expertise of professional teachers with cutting-edge AI technology. Our mission is to make quality music education accessible to everyone, anywhere in the world.
+              HarmonicCampus is a revolutionary music learning platform that combines the expertise of professional instructors with cutting-edge AI technology. Our mission is to make quality music education accessible to everyone, anywhere in the world.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
               Whether you're a complete beginner or an advanced musician looking to refine your skills, we provide personalized learning paths, interactive lessons, and real-time feedback to help you achieve your musical goals.
@@ -20,7 +20,7 @@ export default function AboutSection() {
                   ✅
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-900 mb-1">Expert Teachers</h4>
+                  <h4 className="font-bold text-gray-900 mb-1">Expert Instructors</h4>
                   <p className="text-gray-600">Learn from professionals with years of teaching experience</p>
                 </div>
               </div>
@@ -66,7 +66,7 @@ export default function AboutSection() {
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-gray-700">Expert Teachers</span>
+                <span className="text-gray-700">Expert Instructors</span>
                 <span className="text-2xl font-bold text-green-600">150+</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">

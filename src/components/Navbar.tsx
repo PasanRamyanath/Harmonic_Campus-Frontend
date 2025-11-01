@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar({ onOpenSignup, onOpenLogin }: { onOpenSignup?: () => void; onOpenLogin?: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { firebaseUser, signOut } = useAuth();
+  const { firebaseUser, signOut, appUser } = useAuth();
 
   return (
     <nav className="bg-white shadow-md fixed w-full top-0 z-50">
@@ -20,6 +20,7 @@ export default function Navbar({ onOpenSignup, onOpenLogin }: { onOpenSignup?: (
           <div className="hidden md:flex space-x-8">
             <a href="/#home" className="text-gray-700 hover:text-purple-700 transition">Home</a>
             <a href="/#features" className="text-gray-700 hover:text-purple-700 transition">Features</a>
+            <Link to="/courses" className="text-gray-700 hover:text-purple-700 transition">Courses</Link>
             <a href="/#lessons" className="text-gray-700 hover:text-purple-700 transition">Lessons</a>
             <a href="/#about" className="text-gray-700 hover:text-purple-700 transition">About</a>
             <a href="/#contact" className="text-gray-700 hover:text-purple-700 transition">Contact</a>
@@ -29,19 +30,24 @@ export default function Navbar({ onOpenSignup, onOpenLogin }: { onOpenSignup?: (
           <div className="hidden md:flex space-x-4 items-center">
             {firebaseUser ? (
               <>
+                {appUser?.role === 'instructor' && (
+                  <Link to="/instructor" className="px-4 py-2 text-gray-700 hover:text-purple-700 transition">Instructor</Link>
+                )}
                 <Link to="/profile" className="px-4 py-2 text-gray-700 hover:text-purple-700 transition">Profile</Link>
                 <button onClick={() => signOut()} className="px-4 py-2 text-purple-700 hover:text-purple-900 transition">
                   Log out
                 </button>
               </>
             ) : (
-              <button onClick={() => onOpenLogin?.()} className="px-4 py-2 text-purple-700 hover:text-purple-900 transition">
-                Login
-              </button>
+              <>
+                <button onClick={() => onOpenLogin?.()} className="px-4 py-2 text-purple-700 hover:text-purple-900 transition">
+                  Login
+                </button>
+                <button onClick={() => onOpenSignup?.()} className="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition shadow-md">
+                  Sign Up
+                </button>
+              </>
             )}
-            <button onClick={() => onOpenSignup?.()} className="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition shadow-md">
-              Sign Up
-            </button>
           </div>
 
           {/* Mobile menu button */}
@@ -68,6 +74,7 @@ export default function Navbar({ onOpenSignup, onOpenLogin }: { onOpenSignup?: (
           <div className="px-2 pt-2 pb-3 space-y-1">
             <a href="/#home" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Home</a>
             <a href="/#features" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Features</a>
+            <Link to="/courses" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Courses</Link>
             <a href="/#lessons" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Lessons</a>
             <a href="/#about" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">About</a>
             <a href="/#contact" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Contact</a>
@@ -80,13 +87,15 @@ export default function Navbar({ onOpenSignup, onOpenLogin }: { onOpenSignup?: (
                   </button>
                 </>
               ) : (
-                <button onClick={() => onOpenLogin?.()} className="w-full px-4 py-2 text-purple-700 border border-purple-700 rounded-full hover:bg-purple-50 transition">
-                  Login
-                </button>
+                <>
+                  <button onClick={() => onOpenLogin?.()} className="w-full px-4 py-2 text-purple-700 border border-purple-700 rounded-full hover:bg-purple-50 transition">
+                    Login
+                  </button>
+                  <button onClick={() => onOpenSignup?.()} className="w-full px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition">
+                    Sign Up
+                  </button>
+                </>
               )}
-              <button onClick={() => onOpenSignup?.()} className="w-full px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition">
-                Sign Up
-              </button>
             </div>
           </div>
         </div>

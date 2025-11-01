@@ -18,7 +18,7 @@ export default function HeroSection() {
         <div className="max-w-7xl mx-auto flex items-center justify-center">
           <div className="text-center text-white max-w-3xl">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight drop-shadow-lg">
-              Learn Music <span className="text-purple-300">Online</span> with Expert Teachers
+              Learn Music <span className="text-purple-300">Online</span> with Expert Instructors
             </h1>
             <p className="mt-4 text-lg sm:text-xl text-purple-100">
               Master any instrument with personalized lessons, AI-powered feedback, and a thriving community of musicians.
@@ -40,7 +40,7 @@ export default function HeroSection() {
               </div>
               <div>
                 <p className="text-2xl font-bold">50+</p>
-                <p className="text-sm">Expert Teachers</p>
+                <p className="text-sm">Expert Instructors</p>
               </div>
               <div>
                 <p className="text-2xl font-bold">1000+</p>

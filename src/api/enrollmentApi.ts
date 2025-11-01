@@ -1,0 +1,29 @@
+import axios from 'axios';
+import { getAuth } from 'firebase/auth';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+async function authHeaders() {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error('No authenticated Firebase user');
+  const token = await user.getIdToken();
+  return { Authorization: `Bearer ${token}` };
+}
+
+export const enroll = async (courseId: string) => {
+  const headers = await authHeaders();
+  const res = await axios.post(`${API_BASE}/api/enrollments`, { courseId }, { headers });
+  return res.data;
+};
+
+export const listEnrollments = async (opts: { mine?: boolean; courseId?: string } = {}) => {
+  const headers = await authHeaders();
+  const params: any = {};
+  if (opts.mine) params.mine = 'true';
+  if (opts.courseId) params.courseId = opts.courseId;
+  const res = await axios.get(`${API_BASE}/api/enrollments`, { headers, params });
+  return res.data;
+};
+
+export default { enroll, listEnrollments };

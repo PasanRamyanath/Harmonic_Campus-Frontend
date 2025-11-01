@@ -3,7 +3,7 @@ export default function LessonsSection() {
     {
       instrument: 'Guitar',
       icon: '🎸',
-      teacher: 'John Smith',
+      instructor: 'John Smith',
       students: 245,
       rating: 4.9,
       color: 'from-amber-400 to-orange-500'
@@ -11,7 +11,7 @@ export default function LessonsSection() {
     {
       instrument: 'Piano',
       icon: '🎹',
-      teacher: 'Sarah Johnson',
+      instructor: 'Sarah Johnson',
       students: 312,
       rating: 4.8,
       color: 'from-blue-400 to-indigo-500'
@@ -19,7 +19,7 @@ export default function LessonsSection() {
     {
       instrument: 'Vocals',
       icon: '🎤',
-      teacher: 'Michael Brown',
+      instructor: 'Michael Brown',
       students: 189,
       rating: 4.9,
       color: 'from-pink-400 to-rose-500'
@@ -27,7 +27,7 @@ export default function LessonsSection() {
     {
       instrument: 'Drums',
       icon: '🥁',
-      teacher: 'David Lee',
+      instructor: 'David Lee',
       students: 156,
       rating: 4.7,
       color: 'from-red-400 to-red-600'
@@ -35,7 +35,7 @@ export default function LessonsSection() {
     {
       instrument: 'Violin',
       icon: '🎻',
-      teacher: 'Emily Chen',
+      instructor: 'Emily Chen',
       students: 198,
       rating: 4.8,
       color: 'from-purple-400 to-purple-600'
@@ -43,7 +43,7 @@ export default function LessonsSection() {
     {
       instrument: 'Bass',
       icon: '🎸',
-      teacher: 'Alex Turner',
+      instructor: 'Alex Turner',
       students: 134,
       rating: 4.6,
       color: 'from-green-400 to-emerald-600'
@@ -58,7 +58,7 @@ export default function LessonsSection() {
             Explore Our <span className="text-purple-600">Lessons</span>
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Choose from a wide variety of instruments and learn from the best teachers
+            Choose from a wide variety of instruments and learn from the best instructors
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function LessonsSection() {
               </div>
               <div className="p-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">{lesson.instrument}</h3>
-                <p className="text-gray-600 mb-4">with {lesson.teacher}</p>
+                <p className="text-gray-600 mb-4">with {lesson.instructor}</p>
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-400">⭐</span>
