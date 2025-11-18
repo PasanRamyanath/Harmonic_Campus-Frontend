@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import SignupModal from '../components/SignupModal';
-import LoginModal from '../components/LoginModal';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { useAuth } from '../contexts/AuthContext';
 
 const INTEREST_OPTIONS = ['Guitar','Piano','Vocals','Music Theory','Production','Drums','Violin','Bass'];
 const INSTRUMENT_OPTIONS = ['Guitar','Piano','Violin','Drums','Bass','Saxophone','Trumpet','Cello'];
 
 export default function ProfileSettings() {
-  const [showSignup, setShowSignup] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
 
   const { appUser, updateProfile } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -65,19 +60,16 @@ export default function ProfileSettings() {
 
   return (
     <div className="min-h-screen">
-      <Navbar onOpenSignup={() => setShowSignup(true)} onOpenLogin={() => setShowLogin(true)} />
-      {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
-
-      <main className="pt-20">
+      <main className="pt-6">
         {!appUser ? (
           <section id="profile" className="p-8">
             <div className="max-w-3xl mx-auto bg-white p-6 rounded shadow">Please login to view profile settings.</div>
           </section>
         ) : (
           <section id="profile" className="p-8">
-            <div className="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-              <h2 className="text-2xl font-bold mb-4">Profile Settings</h2>
+          <div className="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+          <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Profile' }]} />
+          <h2 className="text-2xl font-bold mb-4">Profile Settings</h2>
 
               <div className="space-y-4">
                 <div>
@@ -130,8 +122,6 @@ export default function ProfileSettings() {
           </section>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }

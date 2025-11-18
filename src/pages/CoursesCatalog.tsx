@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import SignupModal from '../components/SignupModal';
-import LoginModal from '../components/LoginModal';
+import { Link } from 'react-router-dom';
+import Breadcrumbs from '../components/Breadcrumbs';
 import * as courseApi from '../api/courseApi';
 import * as enrollmentApi from '../api/enrollmentApi';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,8 +14,6 @@ export default function CoursesCatalog() {
   const [sort, setSort] = useState('newest');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   const { appUser } = useAuth();
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
@@ -100,12 +96,9 @@ export default function CoursesCatalog() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onOpenSignup={() => setShowSignup(true)} onOpenLogin={() => setShowLogin(true)} />
-      {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
-
-      <main className="pt-20 p-6 max-w-6xl mx-auto">
+      <main className="pt-6 p-6 max-w-6xl mx-auto">
         <div className="bg-white p-6 rounded shadow mb-4">
+          <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Courses' }]} />
           <h1 className="text-xl font-semibold mb-3">Course Catalog</h1>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} className="p-2 border rounded" />
@@ -144,14 +137,12 @@ export default function CoursesCatalog() {
                 ) : (
                   <button onClick={() => handleEnroll(c._id)} className="px-3 py-2 bg-green-600 text-white rounded">Enroll</button>
                 )}
-                <a href={`/courses/${c._id}`} className="text-sm text-blue-600">View</a>
+                <Link to={`/courses/${c._id}`} className="text-sm text-blue-600">View</Link>
               </div>
             </div>
           ))}
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

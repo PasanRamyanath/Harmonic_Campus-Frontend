@@ -1,23 +1,20 @@
 import { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import SignupModal from '../components/SignupModal';
-import LoginModal from '../components/LoginModal';
+import Breadcrumbs from '../components/Breadcrumbs';
 import CourseEditor from '../components/CourseEditor';
 import { useAuth } from '../contexts/AuthContext';
 import * as courseApi from '../api/courseApi';
+import * as enrollmentApi from '../api/enrollmentApi';
+import * as qnaApi from '../api/qnaApi';
 
 type Lesson = { lessonId?: string; title: string; order?: number; contents?: { type?: 'text' | 'video' | 'file'; text?: string; url?: string; filename?: string; mimeType?: string; size?: number }[] };
 type Module = { moduleId?: string; title: string; order?: number; lessons: Lesson[] };
 type Course = { _id?: string; title: string; description: string; accessTier: string; status: string; tags?: string[]; modules?: Module[] };
 
 export default function InstructorDashboard() {
-	const [showSignup, setShowSignup] = useState(false);
-	const [showLogin, setShowLogin] = useState(false);
 
 	const { appUser, updateProfile } = useAuth();
 
-	const [active, setActive] = useState<'profile' | 'instructor' | 'courses'>('profile');
+	const [active, setActive] = useState<'profile' | 'instructor' | 'courses' | 'engagement'>('profile');
 
 	// Profile settings state
 	const [username, setUsername] = useState('');
@@ -40,6 +37,17 @@ export default function InstructorDashboard() {
 	const [loadingCourses, setLoadingCourses] = useState(false);
 	const [editing, setEditing] = useState<Course | null>(null);
 	const [savingCourse, setSavingCourse] = useState(false);
+
+	// Engagement: enrolled students and lesson Q&A
+	const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+	const [enrolled, setEnrolled] = useState<any[]>([]);
+	const [loadingEnrolled, setLoadingEnrolled] = useState(false);
+
+	const [selectedLessonId, setSelectedLessonId] = useState<string>('');
+	const [qnaItems, setQnaItems] = useState<any[]>([]);
+	const [loadingQna, setLoadingQna] = useState(false);
+	const [qnaText, setQnaText] = useState('');
+	const [replyParentId, setReplyParentId] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!appUser) return;
@@ -65,19 +73,24 @@ export default function InstructorDashboard() {
 		setProfileMsg(null);
 		setProfileLoading(true);
 		try {
-			const updates = {
+			if (!updateProfile) throw new Error('updateProfile unavailable');
+			const updates: any = {
 				username: username || '',
-				profile: { bio: bio || '', picUrl: picUrl || '', instruments: instruments || [], interests: interests || [] }
+				profile: {
+					bio: bio || '',
+					picUrl: picUrl || '',
+					instruments,
+					interests,
+				},
 			};
-			if (!updateProfile) throw new Error('updateProfile not available');
 			await updateProfile(updates);
-			setProfileMsg('Profile saved');
+			setProfileMsg('Saved');
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : String(err);
-			setProfileMsg(msg || 'Failed to save');
+			setProfileMsg(msg || 'Save failed');
 		} finally {
 			setProfileLoading(false);
-			setTimeout(() => setProfileMsg(null), 2000);
+			setTimeout(() => setProfileMsg(null), 2500);
 		}
 	};
 
@@ -115,6 +128,55 @@ export default function InstructorDashboard() {
 	useEffect(() => {
 		if (appUser && appUser.role === 'instructor') fetchCourses();
 	}, [appUser]);
+
+		// When a course is selected for engagement, fetch enrolled students
+		useEffect(() => {
+			const run = async () => {
+				if (!selectedCourseId) { setEnrolled([]); return; }
+				setLoadingEnrolled(true);
+				try {
+					const data = await enrollmentApi.listEnrollments({ courseId: selectedCourseId });
+					setEnrolled(data || []);
+				} catch (err) {
+					console.warn('Failed to load enrollments for course', selectedCourseId, err);
+					setEnrolled([]);
+				} finally {
+					setLoadingEnrolled(false);
+				}
+			};
+			run();
+		}, [selectedCourseId]);
+
+		// When lesson selection changes, fetch Q&A
+		useEffect(() => {
+			const run = async () => {
+				if (!selectedCourseId || !selectedLessonId) { setQnaItems([]); return; }
+				setLoadingQna(true);
+				try {
+					const data = await qnaApi.listQna(selectedCourseId, selectedLessonId);
+					setQnaItems(data || []);
+				} catch (err) {
+					console.warn('Failed to load lesson Q&A', err);
+					setQnaItems([]);
+				} finally {
+					setLoadingQna(false);
+				}
+			};
+			run();
+		}, [selectedCourseId, selectedLessonId]);
+
+		const postQna = async () => {
+			if (!selectedCourseId || !selectedLessonId) return;
+			if (!qnaText.trim()) return;
+			try {
+				const item = await qnaApi.postQna(selectedCourseId, selectedLessonId, qnaText.trim(), replyParentId || undefined);
+				setQnaItems(prev => [...prev, item]);
+				setQnaText('');
+				setReplyParentId(null);
+			} catch (err: any) {
+				alert('Failed to post: ' + (err?.response?.data?.error || err.message || err));
+			}
+		};
 
 	const startNew = () => setEditing({ title: '', description: '', accessTier: 'free', status: 'draft', tags: [], modules: [] });
 
@@ -169,39 +231,28 @@ export default function InstructorDashboard() {
 
 	if (!appUser) {
 		return (
-			<div className="min-h-screen">
-				<Navbar onOpenSignup={() => setShowSignup(true)} onOpenLogin={() => setShowLogin(true)} />
-				{showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
-				{showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
-				<main className="pt-20 p-8">
+			<div className="min-h-screen bg-gray-50">
+				<main className="pt-6 p-8">
 					<div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">Please log in to access instructor dashboard.</div>
 				</main>
-				<Footer />
 			</div>
 		);
 	}
 
 	if (appUser.role !== 'instructor') {
 		return (
-			<div className="min-h-screen">
-				<Navbar onOpenSignup={() => setShowSignup(true)} onOpenLogin={() => setShowLogin(true)} />
-				{showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
-				{showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
-				<main className="pt-20 p-8">
+			<div className="min-h-screen bg-gray-50">
+				<main className="pt-6 p-8">
 					<div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">Your account is not an instructor account.</div>
 				</main>
-				<Footer />
 			</div>
 		);
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-50">
-			<Navbar onOpenSignup={() => setShowSignup(true)} onOpenLogin={() => setShowLogin(true)} />
-			{showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
-			{showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
 
-			<main className="pt-20 p-6">
+		<div className="min-h-screen bg-gray-50">
+			<main className="pt-6">
 				<div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
 					{/* Sidebar */}
 					<aside className="md:col-span-1 bg-white p-4 rounded shadow">
@@ -210,12 +261,14 @@ export default function InstructorDashboard() {
 							<button onClick={() => setActive('profile')} className={`w-full text-left px-3 py-2 rounded ${active === 'profile' ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'}`}>Profile</button>
 							<button onClick={() => setActive('instructor')} className={`w-full text-left px-3 py-2 rounded ${active === 'instructor' ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'}`}>Instructor Info</button>
 							<button onClick={() => setActive('courses')} className={`w-full text-left px-3 py-2 rounded ${active === 'courses' ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'}`}>Courses</button>
+									<button onClick={() => setActive('engagement')} className={`w-full text-left px-3 py-2 rounded ${active === 'engagement' ? 'bg-purple-600 text-white' : 'hover:bg-gray-100'}`}>Students & Q&amp;A</button>
 						</nav>
 					</aside>
 
 					{/* Content area */}
 					<section className="md:col-span-3">
 						<div className="bg-white p-6 rounded shadow">
+							<Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Instructor' }, { label: active === 'profile' ? 'Profile' : active === 'instructor' ? 'Instructor Info' : 'Courses' }]} />
 							{active === 'profile' && (
 								<div>
 									<h1 className="text-2xl font-bold mb-4">Profile Settings</h1>
@@ -248,7 +301,6 @@ export default function InstructorDashboard() {
 										</div>
 
 										<div>
-											<label className="block text-sm font-medium">Interests</label>
 											<div className="mt-2 grid grid-cols-2 gap-2">
 												{INTEREST_OPTIONS.map(opt => (
 													<label key={opt} className="inline-flex items-center space-x-2 p-2 border rounded cursor-pointer">
@@ -295,7 +347,7 @@ export default function InstructorDashboard() {
 								</div>
 							)}
 
-							{active === 'courses' && (
+											{active === 'courses' && (
 								<div>
 									<div className="flex items-center justify-between mb-4">
 										<h1 className="text-2xl font-bold">Your Courses</h1>
@@ -326,20 +378,112 @@ export default function InstructorDashboard() {
 										</div>
 									)}
 
+
+
 									{editing && (
 										<div className="mt-6 border-t pt-4">
 											<CourseEditor course={editing} onCancel={() => setEditing(null)} onSave={saveCourse} saving={savingCourse} />
 										</div>
 									)}
+							</div>
+						)}
+
+						{active === 'engagement' && (
+							<div>
+								<h1 className="text-2xl font-bold mb-4">Students &amp; Q&amp;A</h1>
+
+								{/* Course selector */}
+								<div className="bg-white p-4 rounded border mb-4">
+									<label className="block text-sm font-medium mb-1">Select a course</label>
+									<select value={selectedCourseId} onChange={e => { setSelectedCourseId(e.target.value); setSelectedLessonId(''); }} className="p-2 border rounded w-full">
+										<option value="">-- Choose a course --</option>
+										{courses.map(c => (
+											<option key={c._id} value={c._id}>{c.title}</option>
+										))}
+									</select>
 								</div>
-							)}
+
+								{/* Enrolled students list */}
+								<div className="bg-white p-4 rounded shadow mb-6">
+									<h2 className="text-lg font-semibold mb-2">Enrolled Students</h2>
+									{loadingEnrolled ? (
+										<div>Loading...</div>
+									) : (
+										<div className="space-y-2">
+											{(!enrolled || enrolled.length === 0) && <div className="text-sm text-gray-600">No enrollments yet.</div>}
+											{enrolled.map((e: any) => (
+												<div key={e._id} className="flex items-center justify-between border rounded p-2">
+													<div className="flex items-center gap-3">
+														{e.studentId?.profile?.picUrl ? (
+															<img src={e.studentId.profile.picUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+														) : (
+															<div className="h-8 w-8 rounded-full bg-gray-200" />
+														)}
+														<div>
+															<div className="font-medium">{e.studentId?.username || 'Unknown'}</div>
+															<div className="text-xs text-gray-600">{e.studentId?.email || ''}</div>
+														</div>
+													</div>
+													<div className="text-xs text-gray-500">Enrolled {new Date(e.enrolledAt).toLocaleDateString()}</div>
+												</div>
+											))}
+										</div>
+									)}
+								</div>
+
+								{/* Lesson Q&A */}
+								<div className="bg-white p-4 rounded shadow">
+									<h2 className="text-lg font-semibold mb-2">Lesson Q&amp;A</h2>
+									{/* Lesson selector based on selected course */}
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+										<div>
+											<label className="block text-sm font-medium mb-1">Lesson</label>
+											<select value={selectedLessonId} onChange={e => setSelectedLessonId(e.target.value)} className="p-2 border rounded w-full" disabled={!selectedCourseId}>
+												<option value="">-- Choose a lesson --</option>
+												{courses.filter(c => c._id === selectedCourseId).flatMap(c => (c.modules || [])).flatMap(m => (m.lessons || []).map(l => ({ ...l, moduleTitle: m.title }))).map((l: any) => (
+													<option key={l.lessonId} value={l.lessonId}>{l.title}</option>
+												))}
+											</select>
+										</div>
+									</div>
+
+									{/* QnA list */}
+									<div className="space-y-3 min-h-[80px]">
+										{loadingQna && <div>Loading Q&amp;A...</div>}
+										{!loadingQna && qnaItems.length === 0 && selectedLessonId && (
+											<div className="text-sm text-gray-600">No questions yet. Be the first to post a reply.</div>
+										)}
+										{!loadingQna && qnaItems.map((item: any) => (
+											<div key={item._id} className={`border rounded p-3 ${item.parentId ? 'ml-6' : ''}`}>
+												<div className="text-sm"><span className="font-semibold">{item.authorId?.username || 'User'}</span> <span className="text-xs text-gray-500">{new Date(item.createdAt).toLocaleString()}</span></div>
+												<div className="text-sm text-gray-800 whitespace-pre-wrap">{item.content}</div>
+												{!item.parentId && (
+													<button onClick={() => setReplyParentId(item._id)} className="mt-2 text-xs text-blue-600">Reply</button>
+												)}
+											</div>
+										))}
+									</div>
+
+									{/* Compose */}
+									{selectedLessonId && (
+										<div className="mt-3">
+											{replyParentId && (
+												<div className="text-xs text-gray-600 mb-1">Replying... <button className="text-blue-600" onClick={() => setReplyParentId(null)}>cancel</button></div>
+											)}
+											<textarea value={qnaText} onChange={e => setQnaText(e.target.value)} rows={3} className="w-full border rounded p-2" placeholder="Write your message..." />
+											<div className="flex justify-end mt-2">
+												<button onClick={postQna} className="px-3 py-2 bg-purple-600 text-white rounded" disabled={!qnaText.trim()}>Post</button>
+											</div>
+										</div>
+									)}
+								</div>
+							</div>
+						)}
 
 						</div>
 					</section>
 				</div>
 			</main>
-
-			<Footer />
 		</div>
 	);
 }
