@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import Breadcrumbs from '../components/Breadcrumbs';
+import ConfirmModal from '../components/ConfirmModal';
+import Notification from '../components/Notification';
 import * as courseApi from '../api/courseApi';
 import * as enrollmentApi from '../api/enrollmentApi';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,6 +39,15 @@ export default function CourseDetails() {
   const [error, setError] = useState<string | null>(null);
   const [enrolled, setEnrolled] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationMsg, setNotificationMsg] = useState('');
+  const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotificationMsg(message);
+    setNotificationType(type);
+    setNotificationOpen(true);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -86,46 +96,77 @@ export default function CourseDetails() {
 
     try {
       setEnrolling(true);
-      await enrollmentApi.enroll(id);
-      setEnrolled(true);
-      alert('Enrolled successfully');
+  await enrollmentApi.enroll(id);
+  setEnrolled(true);
+  showNotification('Enrolled successfully', 'success');
     } catch (err: any) {
       if (err?.response?.status === 402) {
         if (confirm('This is a premium course. Subscribe to enroll now?')) navigate('/profile');
         return;
       }
-      console.error('Enroll failed', err);
-      alert('Enrollment failed: ' + (err?.response?.data?.error || err.message || err));
+  console.error('Enroll failed', err);
+  showNotification('Enrollment failed: ' + (err?.response?.data?.error || err.message || err), 'error');
     } finally {
       setEnrolling(false);
     }
   };
 
+  const handleUnenroll = async () => {
+    if (!id) return;
+    if (!appUser) {
+      navigate('/profile');
+      return;
+    }
+    // show modal instead (handled via state)
+    setShowConfirm(true);
+  };
+
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const performUnenroll = async (password?: string) => {
+    setShowConfirm(false);
+    try {
+  await enrollmentApi.unenroll(id!, password);
+  setEnrolled(false);
+  showNotification('You have been unenrolled', 'success');
+    } catch (err: any) {
+  console.error('Unenroll failed', err);
+  showNotification('Failed to unenroll: ' + (err?.response?.data?.error || err.message || err), 'error');
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="pt-20 p-6 max-w-4xl mx-auto">Loading...</main>
-        <Footer />
-      </div>
+      <main className="pt-6 p-6 max-w-4xl mx-auto">Loading...</main>
     );
   }
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="pt-20 p-6 max-w-4xl mx-auto">{error ?? 'Course not found'}</main>
-        <Footer />
-      </div>
+      <main className="pt-6 p-6 max-w-4xl mx-auto">{error ?? 'Course not found'}</main>
     );
   }
 
+  const visibleModules = (course.modules || []).map(m => ({
+    ...m,
+    lessons: (m.lessons || []).filter(l => (l.contents || []).length > 0)
+  })).filter(m => (m.lessons || []).length > 0);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="pt-20 p-6 max-w-4xl mx-auto">
-        <div className="bg-white p-6 rounded shadow mb-6">
+      <main className="pt-6 p-6 max-w-6xl mx-auto">
+        <div className="mb-4">
+          <button onClick={() => navigate(-1)} aria-label="Go back" className="inline-flex items-center px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 text-sm">
+            <span className="mr-2">←</span> Back
+          </button>
+        </div>
+
+  <div className="bg-white p-6 rounded shadow mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1">
+              <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Courses', to: '/courses' }, { label: course.title || 'Course' }]} />
+            </div>
+          </div>
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-2xl font-semibold">{course.title}</h1>
@@ -140,7 +181,7 @@ export default function CourseDetails() {
 
             <div className="flex flex-col items-end gap-3">
               {enrolled ? (
-                <button disabled className="px-4 py-2 bg-gray-300 text-gray-700 rounded">Enrolled</button>
+                <button onClick={handleUnenroll} className="px-4 py-2 bg-red-600 text-white rounded">Unenroll</button>
               ) : (
                 <button onClick={handleEnroll} disabled={enrolling} className="px-4 py-2 bg-green-600 text-white rounded">{enrolling ? 'Enrolling...' : 'Enroll'}</button>
               )}
@@ -150,11 +191,11 @@ export default function CourseDetails() {
         </div>
 
         <div className="space-y-4">
-          {course.modules?.length === 0 && (
+          {(visibleModules || []).length === 0 && (
             <div className="bg-white p-6 rounded shadow">No modules available for this course yet.</div>
           )}
 
-          {course.modules?.map((m, mi) => (
+          {(visibleModules || []).map((m: Module, mi: number) => (
             <div key={mi} className="bg-white p-4 rounded shadow">
               <div className="flex justify-between">
                 <div>
@@ -173,43 +214,31 @@ export default function CourseDetails() {
                       </div>
                     </div>
 
-                    <div className="mt-2 space-y-2">
-                      {(l.contents || []).map((c, ci) => (
-                        <div key={ci} className="p-2 bg-gray-50 rounded">
-                          {c.type === 'text' && <div dangerouslySetInnerHTML={{ __html: c.text || '' }} className="prose max-w-none"></div>}
-                          {c.type === 'video' && c.url && (
-                            <div>
-                              {enrolled ? (
-                                <video controls src={c.url} className="w-full rounded" />
-                              ) : (
-                                <div className="p-4 border rounded bg-white text-center">
-                                  <div className="text-sm text-gray-700 mb-3">Video content is available to enrolled students only.</div>
-                                  <button onClick={handleEnroll} className="px-3 py-2 bg-green-600 text-white rounded">{enrolling ? 'Enrolling...' : 'Enroll to watch'}</button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {c.type === 'file' && c.url && (
-                            <div>
-                              <a href={c.url} target="_blank" rel="noreferrer" className="text-blue-600">{c.filename || 'Download file'}</a>
-                              <div className="text-xs text-gray-500">{c.mimeType} · {c.size ? `${c.size} bytes` : ''}</div>
-                            </div>
-                          )}
-                          {/* fallback for unknown types */}
-                          {c.type && !['text','video','file'].includes(c.type) && (
-                            <div className="text-sm text-gray-700">{JSON.stringify(c)}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <div className="mt-2 text-sm text-gray-500">{(l.contents || []).length} content item{(l.contents || []).length === 1 ? '' : 's'}</div>
                   </div>
                 ))}
               </div>
             </div>
           ))}
         </div>
-      </main>
-      <Footer />
+  </main>
+      <ConfirmModal
+        open={showConfirm}
+        title="Unenroll"
+        courseTitle={course.title}
+        requirePassword={true}
+        message="Are you sure you want to unenroll from this course? You will lose access to the content."
+        confirmLabel="Unenroll"
+        cancelLabel="Cancel"
+        onConfirm={(pw?: string) => performUnenroll(pw)}
+        onCancel={() => setShowConfirm(false)}
+      />
+      <Notification
+        open={notificationOpen}
+        message={notificationMsg}
+        type={notificationType}
+        onClose={() => setNotificationOpen(false)}
+      />
     </div>
   );
 }

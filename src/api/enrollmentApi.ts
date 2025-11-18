@@ -26,4 +26,21 @@ export const listEnrollments = async (opts: { mine?: boolean; courseId?: string 
   return res.data;
 };
 
-export default { enroll, listEnrollments };
+export const updateProgress = async (courseId: string, lessonId: string, completed?: boolean) => {
+  const headers = await authHeaders();
+  const payload: any = { courseId, lessonId };
+  if (typeof completed !== 'undefined') payload.completed = !!completed;
+  const res = await axios.patch(`${API_BASE}/api/enrollments/progress`, payload, { headers });
+  return res.data;
+};
+
+export const unenroll = async (courseId: string, password?: string) => {
+  const headers = await authHeaders();
+  // axios.delete supports a request body via the `data` option in the config
+  const config: any = { headers };
+  if (typeof password !== 'undefined') config.data = { password };
+  const res = await axios.delete(`${API_BASE}/api/enrollments/${courseId}`, config);
+  return res.data;
+};
+
+export default { enroll, listEnrollments, updateProgress, unenroll };
