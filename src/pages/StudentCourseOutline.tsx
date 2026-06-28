@@ -15,6 +15,7 @@ export default function StudentCourseOutline() {
   const [enrollment, setEnrollment] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -25,12 +26,11 @@ export default function StudentCourseOutline() {
         const c = await courseApi.getCourse(courseId);
         if (!mounted) return;
         setCourse(c);
-        // fetch enrollment for this course
+        setExpandedModules({ 0: true });
         const en = await enrollmentApi.listEnrollments({ mine: true, courseId });
         if (!mounted) return;
         setEnrollment((en && en[0]) || null);
       } catch (err: any) {
-        console.error('Failed to load course outline', err);
         if (!mounted) return;
         setError(err?.message || 'Failed to load course');
       } finally {
@@ -41,11 +41,21 @@ export default function StudentCourseOutline() {
   }, [courseId]);
 
   if (loading) return (
-    <main className="pt-6 p-6 max-w-4xl mx-auto">Loading course...</main>
+    <main className="min-h-screen bg-[#0a0a1a] pt-8 pb-16 px-4">
+      <div className="max-w-4xl mx-auto space-y-4">
+        <div className="h-32 rounded-2xl bg-white/5 animate-pulse" />
+        {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-2xl bg-white/5 animate-pulse" />)}
+      </div>
+    </main>
   );
 
   if (!course) return (
-    <main className="pt-6 p-6 max-w-4xl mx-auto">{error ?? 'Course not found'}</main>
+    <main className="min-h-screen bg-[#0a0a1a] pt-8 pb-16 px-4 flex items-center justify-center">
+      <div className="glass-card p-8 text-center">
+        <p className="text-red-400">{error ?? 'Course not found'}</p>
+        <button onClick={() => navigate(-1)} className="btn-primary text-sm mt-4">Go Back</button>
+      </div>
+    </main>
   );
 
   const visibleModules: Module[] = (course.modules || []).map((m: Module) => ({
@@ -53,10 +63,10 @@ export default function StudentCourseOutline() {
     lessons: (m.lessons || []).filter((l: Lesson) => (l.contents || []).length > 0)
   })).filter((m: Module) => (m.lessons || []).length > 0);
 
-  // Find next incomplete lesson for this enrollment
   const completed = (enrollment && enrollment.progress && Array.isArray(enrollment.progress.completedLessons))
     ? enrollment.progress.completedLessons.map((id: any) => id.toString())
     : [];
+
   let nextLessonId: string | null = null;
   outer: for (const mod of (course?.modules || [])) {
     for (const lesson of (mod.lessons || [])) {
@@ -70,72 +80,122 @@ export default function StudentCourseOutline() {
     }
   }
 
+  const totalLessons = visibleModules.reduce((sum, m) => sum + (m.lessons || []).length, 0);
+  const completedCount = completed.length;
+  const progressPct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="pt-6 p-6 max-w-4xl mx-auto">
+    <main className="min-h-screen bg-[#0a0a1a] pt-8 pb-16 px-4">
+      <div className="max-w-4xl mx-auto">
         <button
           onClick={() => navigate(-1)}
-          aria-label="Go back"
-          className="inline-flex items-center px-3 py-2 mb-4 rounded bg-gray-100 hover:bg-gray-200 text-sm"
+          className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6 transition-colors group"
         >
-          <span className="mr-2">←</span> Back
+          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back
         </button>
-        <div className="bg-white p-6 rounded shadow mb-6">
-          <h1 className="text-2xl font-semibold">{course.title}</h1>
-          <div className="text-sm text-gray-600 mt-2">{course.description}</div>
+
+        {/* Course header */}
+        <div className="glass-card p-6 mb-6">
+          <h1 className="text-2xl font-bold text-white mb-2">{course.title}</h1>
+          <p className="text-slate-400 text-sm mb-5">{course.description}</p>
+
+          {/* Progress */}
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-slate-400">{completedCount} of {totalLessons} lessons completed</span>
+            <span className="text-purple-400 font-semibold">{progressPct}%</span>
+          </div>
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${progressPct}%` }} />
+          </div>
         </div>
 
         {visibleModules.length === 0 && (
-          <div className="bg-white p-6 rounded shadow">No modules available for this course yet.</div>
+          <div className="glass-card p-8 text-center text-slate-500">No modules available yet.</div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {visibleModules.map((m, mi) => (
-            <div key={mi} className="bg-white p-4 rounded shadow">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-semibold">{m.title}</h2>
-                  <div className="text-sm text-gray-600">{m.description}</div>
+            <div key={mi} className="glass-card overflow-hidden">
+              <button
+                className="w-full flex items-center justify-between p-5 text-left hover:bg-white/3 transition-colors"
+                onClick={() => setExpandedModules(prev => ({ ...prev, [mi]: !prev[mi] }))}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-600/20 rounded-lg flex items-center justify-center text-purple-400 text-xs font-bold">
+                    {mi + 1}
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold">{m.title}</div>
+                    {m.description && <div className="text-slate-500 text-xs mt-0.5">{m.description}</div>}
+                  </div>
                 </div>
-              </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-500 text-xs">{(m.lessons || []).length} lessons</span>
+                  <svg
+                    className={`w-4 h-4 text-slate-500 transition-transform ${expandedModules[mi] ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+              </button>
 
-              <div className="mt-3 space-y-3">
-                {(m.lessons || []).map((l: Lesson, li: number) => {
-                  const lid = (l as any).lessonId;
-                  const isNext = nextLessonId && lid && nextLessonId === lid.toString();
-                  const isCompleted = completed.includes(lid?.toString());
-                  // If completed: show View and Completed
-                  // If next: show only Continue
-                  // If future: show only View
-                  return (
-                    <div key={li} className="border rounded p-3 flex flex-col md:flex-row md:items-center md:justify-between hover:bg-gray-50">
-                      <div>
-                        <div className="font-medium">{l.title}</div>
-                        <div className="text-sm text-gray-600">{l.description}</div>
-                        <div className="text-xs text-gray-500 mt-2">{(l.contents || []).length} content item{(l.contents || []).length === 1 ? '' : 's'}</div>
+              {expandedModules[mi] && (
+                <div className="border-t border-white/5 divide-y divide-white/5">
+                  {(m.lessons || []).map((l: Lesson, li: number) => {
+                    const lid = (l as any).lessonId;
+                    const isNext = nextLessonId && lid && nextLessonId === lid.toString();
+                    const isCompleted = completed.includes(lid?.toString());
+                    return (
+                      <div key={li} className="flex items-center gap-4 px-5 py-4 hover:bg-white/3 transition-colors">
+                        {/* Status icon */}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                          isCompleted ? 'bg-emerald-500/20 border border-emerald-500/40' : isNext ? 'bg-purple-600/20 border-2 border-purple-500' : 'border border-white/10'
+                        }`}>
+                          {isCompleted ? (
+                            <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          ) : (
+                            <span className={`text-xs ${isNext ? 'text-purple-400' : 'text-slate-600'}`}>{li + 1}</span>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-200'}`}>{l.title}</div>
+                          {l.description && <div className="text-slate-600 text-xs mt-0.5 truncate">{l.description}</div>}
+                          <div className="text-xs text-slate-600 mt-0.5">{(l.contents || []).length} item{(l.contents || []).length === 1 ? '' : 's'}</div>
+                        </div>
+
+                        <div className="flex gap-2 shrink-0">
+                          {isCompleted && (
+                            <button onClick={() => navigate(`/student/courses/${courseId}/lesson/${lid}`)} className="text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors">
+                              Review
+                            </button>
+                          )}
+                          {isNext && !isCompleted && (
+                            <button onClick={() => navigate(`/student/courses/${courseId}/lesson/${lid}`)} className="btn-primary text-xs !py-1.5 !px-3">
+                              Continue
+                            </button>
+                          )}
+                          {!isCompleted && !isNext && (
+                            <button onClick={() => navigate(`/student/courses/${courseId}/lesson/${lid}`)} className="text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors">
+                              View
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="mt-2 md:mt-0 flex gap-2 items-center">
-                        {isCompleted && (
-                          <>
-                            <button onClick={() => navigate(`/student/courses/${courseId}/lesson/${lid}`)} className="px-3 py-1 bg-blue-600 text-white rounded">View</button>
-                            <span className="px-3 py-1 bg-gray-300 text-gray-700 rounded">Completed</span>
-                          </>
-                        )}
-                        {isNext && !isCompleted && (
-                          <button onClick={() => navigate(`/student/courses/${courseId}/lesson/${lid}`)} className="px-3 py-1 bg-green-600 text-white rounded">Continue</button>
-                        )}
-                        {!isCompleted && !isNext && (
-                          <button onClick={() => navigate(`/student/courses/${courseId}/lesson/${lid}`)} className="px-3 py-1 bg-blue-600 text-white rounded">View</button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

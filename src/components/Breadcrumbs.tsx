@@ -5,16 +5,25 @@ export type BreadcrumbItem = { label: string; to?: string };
 export default function Breadcrumbs({ items = [] }: { items?: BreadcrumbItem[] }) {
   if (!items || items.length === 0) return null;
   return (
-    <nav className="text-sm text-gray-600 mb-4" aria-label="Breadcrumb">
-      <ol className="list-none p-0 inline-flex items-center">
+    <nav className="mb-5" aria-label="Breadcrumb">
+      <ol className="flex items-center flex-wrap gap-1">
         {items.map((it, idx) => (
-          <li key={idx} className="inline-flex items-center">
+          <li key={idx} className="flex items-center gap-1">
             {it.to ? (
-              <Link to={it.to} className="text-blue-600 hover:underline">{it.label}</Link>
+              <Link
+                to={it.to}
+                className="text-slate-500 hover:text-purple-400 text-sm transition-colors duration-200"
+              >
+                {it.label}
+              </Link>
             ) : (
-              <span className="text-gray-700">{it.label}</span>
+              <span className="text-slate-300 text-sm font-medium">{it.label}</span>
             )}
-            {idx < items.length - 1 && <span className="px-2 text-gray-400">/</span>}
+            {idx < items.length - 1 && (
+              <svg className="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            )}
           </li>
         ))}
       </ol>

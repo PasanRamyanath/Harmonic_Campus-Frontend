@@ -1,125 +1,187 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SignupModal from './SignupModal';
 import LoginModal from './LoginModal';
 
 export default function Navbar({ onOpenSignup, onOpenLogin }: { onOpenSignup?: () => void; onOpenLogin?: () => void }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { firebaseUser, signOut, appUser } = useAuth();
-  const profileLink = appUser?.role === 'instructor' ? '/instructor' : '/student';
+  const location = useLocation();
 
-    // Show student courses link only for authenticated users with student role
-    const showStudentCourses = firebaseUser && appUser?.role === 'student';
+  const profileLink = appUser?.role === 'instructor' ? '/instructor' : '/student';
+  const showStudentCourses = firebaseUser && appUser?.role === 'student';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  const navLinks = [
+    { to: '/#home', label: 'Home' },
+    { to: '/#features', label: 'Features' },
+    { to: '/courses', label: 'Courses' },
+    { to: '/community', label: 'Community' },
+    { to: '/audio-tools', label: 'Audio Tools' },
+    { to: '/#about', label: 'About' },
+    { to: '/#contact', label: 'Contact' },
+    ...(showStudentCourses ? [{ to: '/student/courses', label: 'My Courses' }] : []),
+  ];
 
   return (
     <>
-    <nav className="bg-white shadow-md fixed w-full top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex-shrink-0 flex items-center">
-            <img src="/favicon-logo.png" alt="HarmonicCampus logo" className="h-10 w-10 md:h-12 md:w-12 mr-3 object-contain" />
-            <h1 className="text-2xl font-bold text-purple-700">Harmonic Campus</h1>
-          </Link>
+      <nav
+        className={`fixed w-full top-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? 'bg-[#0a0a1a]/90 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/30'
+            : 'bg-transparent'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="relative">
+                <img
+                  src="/favicon-logo.png"
+                  alt="HarmonicCampus"
+                  className="h-9 w-9 object-contain transition-transform duration-300 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 rounded-full bg-purple-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+              <span className="text-xl font-bold gradient-text">Harmonic Campus</span>
+            </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-8">
-            <Link to="/#home" className="text-gray-700 hover:text-purple-700 transition">Home</Link>
-            <Link to="/#features" className="text-gray-700 hover:text-purple-700 transition">Features</Link>
-            <Link to="/courses" className="text-gray-700 hover:text-purple-700 transition">Courses</Link>
-            <Link to="/community" className="text-gray-700 hover:text-purple-700 transition">Community</Link>
-            <Link to="/#lessons" className="text-gray-700 hover:text-purple-700 transition">Lessons</Link>
-            <Link to="/#about" className="text-gray-700 hover:text-purple-700 transition">About</Link>
-            <Link to="/#contact" className="text-gray-700 hover:text-purple-700 transition">Contact</Link>
-            {showStudentCourses && (
-              <Link to="/student/courses" className="text-gray-700 hover:text-purple-700 transition">My Courses</Link>
-            )}
-          </div>
+            {/* Desktop nav links */}
+            <div className="hidden md:flex items-center gap-6">
+              {navLinks.map(link => (
+                <Link key={link.to} to={link.to} className="nav-link">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
 
-          {/* CTA Buttons */}
-          <div className="hidden md:flex space-x-4 items-center">
-            {firebaseUser ? (
-              <>
-                {appUser?.role === 'instructor' && (
-                  <Link to="/instructor" className="px-4 py-2 text-gray-700 hover:text-purple-700 transition">Instructor</Link>
-                )}
-                <Link to={profileLink} className="px-4 py-2 text-gray-700 hover:text-purple-700 transition">Profile</Link>
-                <button onClick={() => signOut()} className="px-4 py-2 text-purple-700 hover:text-purple-900 transition">
-                  Log out
-                </button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => (onOpenLogin ? onOpenLogin() : setShowLogin(true))} className="px-4 py-2 text-purple-700 hover:text-purple-900 transition">
-                  Login
-                </button>
-                <button onClick={() => (onOpenSignup ? onOpenSignup() : setShowSignup(true))} className="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition shadow-md">
-                  Sign Up
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-700 hover:text-purple-700"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link to="/#home" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Home</Link>
-            <Link to="/#features" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Features</Link>
-            <Link to="/courses" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Courses</Link>
-              <Link to="/community" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Community</Link>
-            <Link to="/#lessons" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Lessons</Link>
-            <Link to="/#about" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">About</Link>
-            <Link to="/#contact" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">Contact</Link>
-            {showStudentCourses && (
-              <Link to="/student/courses" className="block px-3 py-2 text-gray-700 hover:bg-purple-50 rounded">My Courses</Link>
-            )}
-            <div className="pt-4 space-y-2">
+            {/* Desktop auth */}
+            <div className="hidden md:flex items-center gap-3">
               {firebaseUser ? (
                 <>
-                  <Link to={profileLink} className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded">Profile</Link>
-                  <button onClick={() => signOut()} className="w-full px-4 py-2 text-purple-700 border border-purple-700 rounded-full hover:bg-purple-50 transition">
+                  {appUser?.role === 'instructor' && (
+                    <Link to="/instructor" className="nav-link">Instructor</Link>
+                  )}
+                  {appUser?.role === 'admin' && (
+                    <Link
+                      to="/admin"
+                      className="px-3 py-1.5 rounded-lg bg-purple-600/20 border border-purple-500/30 text-purple-300 text-sm font-medium hover:bg-purple-600/30 transition-all duration-200"
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <Link to="/practice" className="nav-link">Practice</Link>
+                  <Link to={profileLink} className="nav-link">Profile</Link>
+                  <button
+                    onClick={() => signOut()}
+                    className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white border border-white/10 rounded-lg hover:border-white/20 hover:bg-white/5 transition-all duration-200"
+                  >
                     Log out
                   </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => (onOpenLogin ? onOpenLogin() : setShowLogin(true))} className="w-full px-4 py-2 text-purple-700 border border-purple-700 rounded-full hover:bg-purple-50 transition">
+                  <button
+                    onClick={() => (onOpenLogin ? onOpenLogin() : setShowLogin(true))}
+                    className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
+                  >
                     Login
                   </button>
-                  <button onClick={() => (onOpenSignup ? onOpenSignup() : setShowSignup(true))} className="w-full px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition">
+                  <button
+                    onClick={() => (onOpenSignup ? onOpenSignup() : setShowSignup(true))}
+                    className="btn-primary text-sm !py-2 !px-5"
+                  >
                     Sign Up
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+              aria-label="Toggle menu"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                {mobileOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        <div
+          className={`md:hidden transition-all duration-300 overflow-hidden ${
+            mobileOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="bg-[#0a0a1a]/95 backdrop-blur-xl border-t border-white/10 px-4 py-4 space-y-1">
+            {navLinks.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="block px-4 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200 text-sm font-medium"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="pt-3 border-t border-white/10 space-y-2">
+              {firebaseUser ? (
+                <>
+                  {appUser?.role === 'admin' && (
+                    <Link to="/admin" className="block px-4 py-2.5 rounded-lg text-purple-300 text-sm font-medium hover:bg-purple-600/20 transition-all">
+                      Admin Panel
+                    </Link>
+                  )}
+                  <Link to="/practice" className="block px-4 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all text-sm">Practice</Link>
+                  <Link to={profileLink} className="block px-4 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all text-sm">Profile</Link>
+                  <button
+                    onClick={() => signOut()}
+                    className="w-full text-left px-4 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all text-sm"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => (onOpenLogin ? onOpenLogin() : setShowLogin(true))}
+                    className="w-full px-4 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all text-sm text-left"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => (onOpenSignup ? onOpenSignup() : setShowSignup(true))}
+                    className="w-full btn-primary text-sm text-center"
+                  >
+                    Sign Up Free
                   </button>
                 </>
               )}
             </div>
           </div>
         </div>
-      )}
-    </nav>
-    {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
-    {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+      </nav>
+
+      {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </>
   );
 }
