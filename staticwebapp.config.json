@@ -1,0 +1,12 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/uploads/*", "/*.{png,jpg,jpeg,gif,svg,ico,mp4,webp,woff,woff2}"]
+  },
+  "globalHeaders": {
+    "Cache-Control": "no-cache"
+  },
+  "mimeTypes": {
+    ".mp4": "video/mp4"
+  }
+}

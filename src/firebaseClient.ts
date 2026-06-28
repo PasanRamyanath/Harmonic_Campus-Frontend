@@ -113,7 +113,7 @@ export async function signInWithGoogle() {
   }
 }
 
-export async function signUpWithGoogle({ interests = [] }: { interests?: string[] } = {}) {
+export async function signUpWithGoogle({ role = 'student', interests = [] }: { role?: string; interests?: string[] } = {}) {
   // Signup flow: sign in with Google and create app user if missing.
   if (!firebaseConfig.apiKey) {
     throw new Error('Firebase is not configured. Set VITE_FIREBASE_API_KEY and other env vars.');
@@ -123,7 +123,7 @@ export async function signUpWithGoogle({ interests = [] }: { interests?: string[
   const result = await signInWithPopup(getAuth(), provider);
   const user = result.user;
 
-  // Try to fetch app user; if missing, create one.
+  // Try to fetch app user; if missing, create one with the requested role.
   try {
     const appUser = await getUserByFirebaseUid(user.uid);
     return { firebaseUser: user, appUser };
@@ -133,7 +133,7 @@ export async function signUpWithGoogle({ interests = [] }: { interests?: string[
         name: user.displayName || (user.email ? user.email.split('@')[0] : ''),
         email: user.email,
         firebaseUid: user.uid,
-        role: 'student',
+        role,
         profile: { interests },
         createdAt: new Date().toISOString()
       };

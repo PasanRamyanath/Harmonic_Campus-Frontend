@@ -1,62 +1,112 @@
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white py-12 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
-          {/* Company Info */}
-          <div>
-            <h3 className="text-2xl font-bold text-purple-400 mb-4">🎵 HarmonicCampus</h3>
-            <p className="text-gray-400 leading-relaxed">
-              Empowering musicians worldwide with quality education and cutting-edge technology.
+    <footer className="bg-[#080812] border-t border-white/5">
+      <div className="section-divider" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid md:grid-cols-4 gap-10 mb-12">
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <img src="/favicon-logo.png" alt="HarmonicCampus" className="h-8 w-8 object-contain" />
+              <span className="text-lg font-bold gradient-text">Harmonic Campus</span>
+            </div>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Empowering musicians worldwide with quality education and cutting-edge AI technology.
             </p>
+            <div className="flex gap-3 mt-5">
+              {[
+                { label: 'f', bg: 'from-blue-600 to-blue-700' },
+                { label: '𝕏', bg: 'from-slate-700 to-slate-800' },
+                { label: 'IG', bg: 'from-pink-600 to-red-500' },
+                { label: 'YT', bg: 'from-red-600 to-red-700' },
+              ].map(s => (
+                <a
+                  key={s.label}
+                  href="#"
+                  className={`w-9 h-9 bg-gradient-to-br ${s.bg} rounded-lg flex items-center justify-center text-white text-xs font-bold hover:scale-110 transition-transform duration-200`}
+                >
+                  {s.label}
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-bold mb-4">Quick Links</h4>
-            <ul className="space-y-2">
-              <li><a href="#home" className="text-gray-400 hover:text-purple-400 transition">Home</a></li>
-              <li><a href="#features" className="text-gray-400 hover:text-purple-400 transition">Features</a></li>
-              <li><a href="#lessons" className="text-gray-400 hover:text-purple-400 transition">Lessons</a></li>
-              <li><a href="#about" className="text-gray-400 hover:text-purple-400 transition">About</a></li>
+            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Platform</h4>
+            <ul className="space-y-2.5">
+              {[
+                { to: '/#home', label: 'Home' },
+                { to: '/#features', label: 'Features' },
+                { to: '/courses', label: 'Courses' },
+                { to: '/#about', label: 'About Us' },
+              ].map(l => (
+                <li key={l.to}>
+                  <Link to={l.to} className="text-slate-500 hover:text-purple-400 text-sm transition-colors duration-200">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Support */}
           <div>
-            <h4 className="text-lg font-bold mb-4">Support</h4>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-purple-400 transition">Help Center</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-purple-400 transition">FAQs</a></li>
-              <li><a href="#contact" className="text-gray-400 hover:text-purple-400 transition">Contact Us</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-purple-400 transition">Privacy Policy</a></li>
+            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Support</h4>
+            <ul className="space-y-2.5">
+              {['Help Center', 'FAQs', 'Contact Us', 'Privacy Policy'].map(label => (
+                <li key={label}>
+                  <a href="#contact" className="text-slate-500 hover:text-purple-400 text-sm transition-colors duration-200">
+                    {label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Newsletter */}
           <div>
-            <h4 className="text-lg font-bold mb-4">Stay Updated</h4>
-            <p className="text-gray-400 mb-4">Subscribe to our newsletter for tips and updates</p>
+            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Stay Updated</h4>
+            <p className="text-slate-500 text-sm mb-4">Get tips, updates, and new course alerts.</p>
             <div className="flex gap-2">
               <input
                 type="email"
-                placeholder="Your email"
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
+                placeholder="your@email.com"
+                className="flex-1 input-dark text-sm !py-2.5"
               />
-              <button className="px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition">
+              <button className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-xl text-white font-bold text-sm hover:opacity-90 transition-opacity shrink-0">
                 →
               </button>
             </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-400">© 2025 HarmonicCampus. All rights reserved.</p>
+        {/* Waveform decoration */}
+        <div className="flex items-end justify-center gap-0.5 h-8 mb-10 opacity-20">
+          {Array.from({ length: 48 }).map((_, i) => (
+            <div
+              key={i}
+              className="w-1 bg-gradient-to-t from-purple-600 to-cyan-400 rounded-full animate-waveBar origin-bottom"
+              style={{
+                height: `${20 + Math.sin(i * 0.4) * 16}px`,
+                animationDelay: `${i * 0.06}s`,
+                animationDuration: `${1.2 + (i % 4) * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-slate-600 text-sm">© 2025 HarmonicCampus. All rights reserved.</p>
           <div className="flex gap-6">
-            <a href="#" className="text-gray-400 hover:text-purple-400 transition">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-purple-400 transition">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-purple-400 transition">Cookie Policy</a>
+            {['Terms of Service', 'Privacy Policy', 'Cookie Policy'].map(label => (
+              <a key={label} href="#" className="text-slate-600 hover:text-slate-400 text-sm transition-colors duration-200">
+                {label}
+              </a>
+            ))}
           </div>
         </div>
       </div>

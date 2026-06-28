@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import * as communityApi from '../api/communityApi';
 import { useAuth } from '../contexts/AuthContext';
-
-import { useNavigate } from 'react-router-dom';
 
 export default function CommunityThread() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +17,13 @@ export default function CommunityThread() {
   const [expandedThreads, setExpandedThreads] = useState<Record<string, boolean>>({});
   const VISIBLE_LEVELS = 2;
 
+  const reload = async () => {
+    if (!id) return;
+    const resp = await communityApi.getThread(id);
+    setRoot(resp.root || null);
+    setPosts(resp.posts || []);
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -29,11 +34,8 @@ export default function CommunityThread() {
         if (!mounted) return;
         setRoot(resp.root || null);
         setPosts(resp.posts || []);
-      } catch (err) {
-        console.error('Failed to load thread', err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      } catch (err) { console.error('Failed to load thread', err); }
+      finally { if (mounted) setLoading(false); }
     })();
     return () => { mounted = false; };
   }, [id]);
@@ -45,79 +47,55 @@ export default function CommunityThread() {
     if (!content) return;
     try {
       await communityApi.postReply(id, content, parentId);
-      const resp = await communityApi.getThread(id);
-      setPosts(resp.posts || []);
-      if (parentId) setReplyDrafts(prev => ({ ...prev, [parentId]: '' })); else setNewReply('');
-    } catch (err) {
-      console.error('Failed to post reply', err);
-      alert('Failed to post reply');
-    }
+      await reload();
+      if (parentId) setReplyDrafts(prev => ({ ...prev, [parentId]: '' }));
+      else setNewReply('');
+    } catch { alert('Failed to post reply'); }
   };
 
   const updatePost = async (postId: string) => {
     const draft = (editDrafts[postId] || '').trim();
-    if (!draft) return;
+    if (!draft || !id) return;
     try {
       await communityApi.updatePost(postId, draft);
-      const resp = await communityApi.getThread(id!);
-      setRoot(resp.root || null);
-      setPosts(resp.posts || []);
+      await reload();
       setEditDrafts(prev => { const { [postId]: _, ...rest } = prev; return rest; });
-    } catch (err) {
-      console.error('Failed to update post', err);
-      alert('Failed to update post');
-    }
+    } catch { alert('Failed to update post'); }
   };
 
   const removePost = async (postId: string) => {
-    if (!confirm('Delete this post? This will hide its content.')) return;
+    if (!confirm('Delete this post?') || !id) return;
     try {
       await communityApi.deletePost(postId);
-      const resp = await communityApi.getThread(id!);
-      setRoot(resp.root || null);
-      setPosts(resp.posts || []);
-    } catch (err) {
-      console.error('Failed to delete post', err);
-      alert('Failed to delete post');
-    }
+      await reload();
+    } catch { alert('Failed to delete post'); }
   };
 
   const childrenById = useMemo(() => {
     const map: Record<string, any[]> = {};
     for (const p of posts) {
       const pid = p.parentId ? String(p.parentId) : '';
-      if (pid) {
-        if (!map[pid]) map[pid] = [];
-        map[pid].push(p);
-      }
+      if (pid) { if (!map[pid]) map[pid] = []; map[pid].push(p); }
     }
     return map;
   }, [posts]);
 
-  // Compute subtree info for collapse/expand behavior
   const subtreeInfo = useMemo(() => {
     const info: Record<string, { maxDepth: number; totalDescendants: number }> = {};
-    const dfs = (id: string) => {
-      const children = childrenById[id] || [];
-      let max = 0;
-      let count = 0;
-      for (const c of children) {
-        const r = dfs(c._id);
-        count += 1 + r.totalDescendants;
-        max = Math.max(max, 1 + r.maxDepth);
-      }
-      info[id] = { maxDepth: max, totalDescendants: count };
-      return info[id];
+    const dfs = (nodeId: string) => {
+      const children = childrenById[nodeId] || [];
+      let max = 0; let count = 0;
+      for (const c of children) { const r = dfs(c._id); count += 1 + r.totalDescendants; max = Math.max(max, 1 + r.maxDepth); }
+      info[nodeId] = { maxDepth: max, totalDescendants: count };
+      return info[nodeId];
     };
-    for (const p of posts) {
-      if (!info[p._id]) dfs(p._id);
-    }
+    for (const p of posts) { if (!info[p._id]) dfs(p._id); }
     return info;
   }, [childrenById, posts]);
 
-  const renderNode = (node: any, level = 0, rootId?: string, maxDepth: number = Infinity) => {
+  const renderNode = (node: any, level = 0, rootId?: string, maxDepth: number = Infinity): React.ReactNode => {
     const children = childrenById[node._id] || [];
-    const authorObj = (typeof node.authorId === 'object' && node.authorId) ? node.authorId as any : null;
+    const authorObj = typeof node.authorId === 'object' && node.authorId ? node.authorId as any : null;
     const authorLabel = authorObj ? (authorObj.username || authorObj.email || 'User') : 'User';
     const isRoot = level === 0;
     const created = node.createdAt ? new Date(node.createdAt).toLocaleString() : '';
@@ -126,88 +104,118 @@ export default function CommunityThread() {
     const isEditing = editDrafts.hasOwnProperty(node._id);
 
     return (
-      <li key={node._id} className={`${level === 0 ? '' : ''}`}>
-        <div className={`flex items-start gap-2 p-2 rounded-md ${isRoot ? 'bg-indigo-50 ring-1 ring-indigo-100' : 'bg-white'} ${isRoot ? 'border-l-4 border-indigo-200' : ''}`}>
-          <div className="flex-shrink-0">
-            {authorObj && authorObj.profile && authorObj.profile.picUrl ? (
-              <img src={authorObj.profile.picUrl} alt={authorLabel} className="w-8 h-8 rounded-full object-cover" />
+      <li key={node._id} className="list-none">
+        <div className={`p-4 rounded-xl transition-all ${isRoot ? 'bg-purple-600/10 border border-purple-500/20' : 'bg-white/3 border border-white/5'}`}>
+          <div className="flex items-start gap-3">
+            {/* Avatar */}
+            {authorObj?.profile?.picUrl ? (
+              <img src={authorObj.profile.picUrl} alt={authorLabel} className="w-8 h-8 rounded-full object-cover shrink-0" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-xs">{(authorLabel || 'U').charAt(0)}</div>
-            )}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <span className="font-medium text-gray-800 text-sm">{authorLabel}</span>
-                {isRoot && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-indigo-600 text-white font-semibold">Question</span>
-                )}
-                {created && <span className="ml-2 text-xs text-gray-400">• {created}</span>}
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                {isAuthor && !node.deleted && !isEditing && (
-                  <button className="text-indigo-600 hover:underline" onClick={() => setEditDrafts(prev => ({ ...prev, [node._id]: node.content || '' }))}>Edit</button>
-                )}
-                {isEditing && (
-                  <>
-                    <button className="text-emerald-600 hover:underline" onClick={() => updatePost(node._id)}>Save</button>
-                    <button className="text-gray-600 hover:underline" onClick={() => setEditDrafts(prev => { const { [node._id]: _, ...rest } = prev; return rest; })}>Cancel</button>
-                  </>
-                )}
-                {isAuthor && !node.deleted && (
-                  <button className="text-rose-600 hover:underline" onClick={() => removePost(node._id)}>Delete</button>
-                )}
-              </div>
-            </div>
-
-            {isEditing ? (
-              <div className="mt-1">
-                <textarea className="w-full border rounded p-2 text-sm focus:outline-none focus:ring" rows={2} value={editDrafts[node._id] || ''} onChange={(e) => setEditDrafts(prev => ({ ...prev, [node._id]: e.target.value }))} />
-              </div>
-            ) : (
-              <div className="mt-1 text-sm text-gray-800">
-                {node.deleted ? (
-                  <span className="italic text-gray-400">[deleted]</span>
-                ) : (
-                  <>
-                    <div
-                      className="text-sm text-gray-800"
-                      style={(!showMore[node._id] && node.content && (node.content.length > 150 || (node.content.match(/\n/g) || []).length > 1)) ? {
-                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
-                      } : {}}
-                    >
-                      {node.content}
-                    </div>
-                    {/* Show more / less */}
-                    {node.content && (node.content.length > 150 || (node.content.match(/\n/g) || []).length > 1) && (
-                      <div className="mt-1">
-                        {!showMore[node._id] ? (
-                          <button className="text-xs text-indigo-600 hover:underline" onClick={() => setShowMore(prev => ({ ...prev, [node._id]: true }))}>Show more</button>
-                        ) : (
-                          <button className="text-xs text-indigo-600 hover:underline" onClick={() => setShowMore(prev => ({ ...prev, [node._id]: false }))}>Show less</button>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                {(authorLabel || 'U').charAt(0).toUpperCase()}
               </div>
             )}
 
-            <div className="mt-2 flex items-center justify-end">
-              {!replyDrafts[node._id] ? (
-                <button className="text-xs text-blue-600 hover:underline" onClick={() => {
-                  if (!appUser) { alert('Sign in to reply'); return; }
-                  setReplyDrafts(prev => ({ ...prev, [node._id]: '' }));
-                }}>Reply</button>
+            <div className="flex-1 min-w-0">
+              {/* Header row */}
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-semibold text-sm">{authorLabel}</span>
+                  {isRoot && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-600/30 border border-purple-500/40 text-purple-300 font-semibold">
+                      Original Post
+                    </span>
+                  )}
+                  {created && <span className="text-slate-600 text-xs">{created}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {isAuthor && !node.deleted && !isEditing && (
+                    <button
+                      className="text-xs text-slate-500 hover:text-purple-400 transition-colors"
+                      onClick={() => setEditDrafts(prev => ({ ...prev, [node._id]: node.content || '' }))}
+                    >Edit</button>
+                  )}
+                  {isEditing && (
+                    <>
+                      <button className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors" onClick={() => updatePost(node._id)}>Save</button>
+                      <button className="text-xs text-slate-500 hover:text-white transition-colors" onClick={() => setEditDrafts(prev => { const { [node._id]: _, ...rest } = prev; return rest; })}>Cancel</button>
+                    </>
+                  )}
+                  {isAuthor && !node.deleted && (
+                    <button className="text-xs text-red-400/60 hover:text-red-400 transition-colors" onClick={() => removePost(node._id)}>Delete</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Content */}
+              {isEditing ? (
+                <textarea
+                  className="input-dark resize-none text-sm w-full"
+                  rows={2}
+                  value={editDrafts[node._id] || ''}
+                  onChange={e => setEditDrafts(prev => ({ ...prev, [node._id]: e.target.value }))}
+                />
               ) : (
-                <div className="w-full">
-                  <input className="w-full border rounded px-2 py-1 text-sm" placeholder={'Write a reply…'} value={replyDrafts[node._id] || ''} onChange={(e) => setReplyDrafts(prev => ({ ...prev, [node._id]: e.target.value }))} />
-                  <div className="mt-1 flex justify-end gap-2">
-                    <button onClick={() => submitReply(node._id)} disabled={!(replyDrafts[node._id] || '').trim()} className={`px-2 py-1 rounded text-xs ${!(replyDrafts[node._id] || '').trim() ? 'bg-gray-200 text-gray-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>Post</button>
-                    <button onClick={() => setReplyDrafts(prev => { const { [node._id]: _, ...rest } = prev; return rest; })} className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-700 hover:bg-gray-200">Cancel</button>
-                  </div>
+                <div>
+                  {node.deleted ? (
+                    <span className="italic text-slate-600 text-sm">[deleted]</span>
+                  ) : (
+                    <>
+                      <div
+                        className="text-slate-300 text-sm leading-relaxed"
+                        style={(!showMore[node._id] && node.content && (node.content.length > 150 || (node.content.match(/\n/g) || []).length > 1)) ? {
+                          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                        } as any : {}}
+                      >
+                        {node.content}
+                      </div>
+                      {node.content && (node.content.length > 150 || (node.content.match(/\n/g) || []).length > 1) && (
+                        <button
+                          className="text-xs text-purple-400 hover:text-purple-300 mt-1 transition-colors"
+                          onClick={() => setShowMore(prev => ({ ...prev, [node._id]: !prev[node._id] }))}
+                        >
+                          {showMore[node._id] ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
+
+              {/* Reply */}
+              <div className="mt-3">
+                {!replyDrafts.hasOwnProperty(node._id) ? (
+                  <button
+                    className="text-xs text-slate-500 hover:text-purple-400 transition-colors"
+                    onClick={() => {
+                      if (!appUser) { alert('Sign in to reply'); return; }
+                      setReplyDrafts(prev => ({ ...prev, [node._id]: '' }));
+                    }}
+                  >
+                    ↩ Reply
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      className="input-dark text-sm !py-2"
+                      placeholder="Write a reply…"
+                      value={replyDrafts[node._id] || ''}
+                      onChange={e => setReplyDrafts(prev => ({ ...prev, [node._id]: e.target.value }))}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => submitReply(node._id)}
+                        disabled={!(replyDrafts[node._id] || '').trim()}
+                        className="btn-primary text-xs !py-1.5 !px-4 disabled:opacity-50"
+                      >Post</button>
+                      <button
+                        onClick={() => setReplyDrafts(prev => { const { [node._id]: _, ...rest } = prev; return rest; })}
+                        className="btn-ghost text-xs !py-1.5 !px-3"
+                      >Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -215,46 +223,34 @@ export default function CommunityThread() {
         {children.length > 0 && (
           <>
             {level < maxDepth ? (
-              <ul className="mt-2 space-y-2 pl-3 border-l border-gray-100">
+              <ul className="mt-2 space-y-2 pl-4 border-l border-white/5 ml-4">
                 {children.map(child => renderNode(child, level + 1, rootId, maxDepth))}
               </ul>
-            ) : (
-              // collapsed spot: show an expand control if there are deeper descendants
-              (() => {
-                const nodeInfo = subtreeInfo[node._id] || { totalDescendants: 0, maxDepth: 0 };
-                const hidden = nodeInfo.totalDescendants;
-                if (hidden > 0 && rootId) {
-                  return (
-                    <div className="mt-2 text-center">
-                      <button
-                        className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-xs border border-indigo-100 shadow-sm hover:bg-indigo-100"
-                        onClick={() => setExpandedThreads(prev => ({ ...prev, [rootId]: true }))}
-                      >
-                        Show {hidden} more repl{hidden > 1 ? 'ies' : 'y'}
-                      </button>
-                    </div>
-                  );
-                }
-                return null;
-              })()
-            )}
-
-            {/* When thread is expanded, show a collapse control at the previous boundary level */}
+            ) : (() => {
+              const nodeInfo = subtreeInfo[node._id] || { totalDescendants: 0 };
+              return nodeInfo.totalDescendants > 0 && rootId ? (
+                <div className="mt-2 pl-4 ml-4">
+                  <button
+                    className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                    onClick={() => setExpandedThreads(prev => ({ ...prev, [rootId]: true }))}
+                  >
+                    Show {nodeInfo.totalDescendants} more repl{nodeInfo.totalDescendants > 1 ? 'ies' : 'y'}
+                  </button>
+                </div>
+              ) : null;
+            })()}
             {rootId && expandedThreads[rootId] && level === (VISIBLE_LEVELS - 1) && (() => {
               const nodeInfo = subtreeInfo[node._id] || { totalDescendants: 0 };
-              if (nodeInfo.totalDescendants > 0) {
-                return (
-                  <div className="mt-1 flex justify-center">
-                    <button
-                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium border border-gray-200 hover:bg-gray-200"
-                      onClick={() => setExpandedThreads(prev => ({ ...prev, [rootId]: false }))}
-                    >
-                      Collapse replies
-                    </button>
-                  </div>
-                );
-              }
-              return null;
+              return nodeInfo.totalDescendants > 0 ? (
+                <div className="mt-1 pl-4 ml-4">
+                  <button
+                    className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                    onClick={() => setExpandedThreads(prev => ({ ...prev, [rootId]: false }))}
+                  >
+                    Collapse replies
+                  </button>
+                </div>
+              ) : null;
             })()}
           </>
         )}
@@ -262,32 +258,65 @@ export default function CommunityThread() {
     );
   };
 
-  if (loading) return <main className="pt-6 p-6 max-w-4xl mx-auto">Loading…</main>;
-  if (!root) return <main className="pt-6 p-6 max-w-4xl mx-auto">Thread not found.</main>;
+  if (loading) return (
+    <main className="min-h-screen bg-[#0a0a1a] pt-8 pb-16 px-4">
+      <div className="max-w-3xl mx-auto space-y-4">
+        {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-xl bg-white/5 animate-pulse" />)}
+      </div>
+    </main>
+  );
+
+  if (!root) return (
+    <main className="min-h-screen bg-[#0a0a1a] pt-8 pb-16 px-4 flex items-center justify-center">
+      <div className="glass-card p-8 text-center">
+        <p className="text-slate-400">Thread not found.</p>
+        <button onClick={() => navigate(-1)} className="btn-primary text-sm mt-4 inline-block">Go Back</button>
+      </div>
+    </main>
+  );
 
   return (
-    <main className="pt-6 p-6 max-w-4xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        aria-label="Go back"
-        className="inline-flex items-center px-3 py-2 mb-4 rounded bg-gray-100 hover:bg-gray-200 text-sm"
-      >
-        <span className="mr-2">←</span> Back
-      </button>
-      <div className="bg-white rounded shadow p-6">
-        <h1 className="text-xl font-semibold">{root.title || 'Discussion'}</h1>
-        <div className="mt-4">
-          <ul>
-            {renderNode(root, 0)}
-            {posts.filter(p => String(p._id) !== String(root._id) && (!p.parentId || String(p.parentId) === String(root._id))).map(p => renderNode(p, 1))}
-          </ul>
-        </div>
+    <main className="min-h-screen bg-[#0a0a1a] pt-8 pb-16 px-4">
+      <div className="max-w-3xl mx-auto">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6 transition-colors group"
+        >
+          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back to Community
+        </button>
 
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold">Add a reply</h2>
-          <textarea className="w-full border rounded px-2 py-1 mt-2" rows={3} value={newReply} onChange={(e) => setNewReply(e.target.value)} />
-          <div className="mt-2 flex justify-end">
-            <button onClick={() => submitReply()} className="px-4 py-2 bg-indigo-600 text-white rounded">Post Reply</button>
+        <div className="glass-card p-6 mb-6">
+          <h1 className="text-2xl font-bold text-white mb-6">{root.title || 'Discussion'}</h1>
+          <ul className="space-y-3">
+            {renderNode(root, 0)}
+            {posts
+              .filter(p => String(p._id) !== String(root._id) && (!p.parentId || String(p.parentId) === String(root._id)))
+              .map(p => renderNode(p, 1))}
+          </ul>
+
+          {/* Reply composer */}
+          <div className="mt-8 pt-6 border-t border-white/10">
+            <h2 className="text-white font-semibold mb-3">Add a Reply</h2>
+            <textarea
+              className="input-dark resize-none mb-3"
+              rows={4}
+              placeholder={appUser ? 'Write your reply…' : 'Sign in to reply'}
+              value={newReply}
+              onChange={e => setNewReply(e.target.value)}
+              disabled={!appUser}
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={() => submitReply()}
+                disabled={!appUser || !newReply.trim()}
+                className="btn-primary text-sm !py-2.5 !px-6 disabled:opacity-50"
+              >
+                Post Reply
+              </button>
+            </div>
           </div>
         </div>
       </div>

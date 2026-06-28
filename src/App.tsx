@@ -10,6 +10,9 @@ import StudentCoursePlayer from './pages/StudentCoursePlayer';
 import StudentCourseOutline from './pages/StudentCourseOutline';
 import Community from './pages/Community';
 import CommunityThread from './pages/CommunityThread';
+import AudioTools from './pages/AudioTools';
+import AdminPanel from './pages/AdminPanel';
+import PracticeRoom from './pages/PracticeRoom';
 import ScrollToTop from './components/ScrollToTop';
 import AppLayout from './components/AppLayout';
 
@@ -30,6 +33,9 @@ function App() {
           <Route path="/courses/:id" element={<CourseDetails />} />
           <Route path="/community" element={<Community />} />
           <Route path="/community/:id" element={<CommunityThread />} />
+          <Route path="/audio-tools" element={<AudioTools />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/practice" element={<PracticeRoom />} />
         </Route>
       </Routes>
     </BrowserRouter>

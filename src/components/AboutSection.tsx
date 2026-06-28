@@ -1,85 +1,98 @@
+const stats = [
+  { label: 'Active Students', value: '2,500+', pct: 80, gradient: 'from-purple-500 to-violet-600' },
+  { label: 'Lessons Completed', value: '15,000+', pct: 100, gradient: 'from-cyan-500 to-blue-500' },
+  { label: 'Expert Instructors', value: '150+', pct: 60, gradient: 'from-emerald-500 to-teal-500' },
+  { label: 'Satisfaction Rate', value: '98%', pct: 98, gradient: 'from-yellow-500 to-orange-500' },
+];
+
+const pillars = [
+  {
+    title: 'Expert Instructors',
+    desc: 'Learn from professionals with years of real-world teaching experience.',
+    gradient: 'from-purple-500 to-violet-600',
+  },
+  {
+    title: 'AI-Powered Learning',
+    desc: 'Get instant pitch analysis and personalized practice recommendations.',
+    gradient: 'from-cyan-500 to-blue-600',
+  },
+  {
+    title: 'Flexible Schedule',
+    desc: 'Learn at your own pace on any device — your music, your timeline.',
+    gradient: 'from-emerald-500 to-teal-600',
+  },
+];
+
 export default function AboutSection() {
   return (
-    <section id="about" className="py-20 px-4 bg-gradient-to-br from-blue-50 to-indigo-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Left: Content */}
-          <div className="space-y-6">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
-              About <span className="text-purple-600">HarmonicCampus</span>
+    <section id="about" className="py-24 px-4 bg-[#0a0a1a] relative overflow-hidden">
+      <div className="section-divider absolute top-0 left-0 right-0" />
+      <div className="absolute top-1/3 left-0 w-72 h-72 bg-purple-900/15 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative">
+        <div className="grid md:grid-cols-2 gap-14 items-center">
+          {/* Left: content */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-600/15 border border-purple-500/30 text-purple-300 text-sm font-medium mb-8">
+              Our Story
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              About{' '}
+              <span className="gradient-text">HarmonicCampus</span>
             </h2>
-            <p className="text-lg text-gray-700 leading-relaxed">
+            <p className="text-slate-400 text-lg leading-relaxed mb-6">
               HarmonicCampus is a revolutionary music learning platform that combines the expertise of professional instructors with cutting-edge AI technology. Our mission is to make quality music education accessible to everyone, anywhere in the world.
             </p>
-            <p className="text-lg text-gray-700 leading-relaxed">
+            <p className="text-slate-500 leading-relaxed mb-10">
               Whether you're a complete beginner or an advanced musician looking to refine your skills, we provide personalized learning paths, interactive lessons, and real-time feedback to help you achieve your musical goals.
             </p>
-            <div className="space-y-4 pt-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
-                  ✅
+
+            <div className="space-y-5">
+              {pillars.map(p => (
+                <div key={p.title} className="flex items-start gap-4">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${p.gradient} rounded-xl flex items-center justify-center shrink-0`}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">{p.title}</h4>
+                    <p className="text-slate-500 text-sm">{p.desc}</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-1">Expert Instructors</h4>
-                  <p className="text-gray-600">Learn from professionals with years of teaching experience</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
-                  ✅
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-1">AI-Powered Learning</h4>
-                  <p className="text-gray-600">Get instant feedback and personalized recommendations</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
-                  ✅
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-1">Flexible Schedule</h4>
-                  <p className="text-gray-600">Learn at your own pace, on your own time</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Right: Stats Card */}
-          <div className="bg-white rounded-3xl shadow-2xl p-8 space-y-6">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Our Impact</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Active Students</span>
-                <span className="text-2xl font-bold text-purple-600">2,500+</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-purple-500 to-blue-500 w-4/5"></div>
-              </div>
+          {/* Right: stats card */}
+          <div className="glass-card p-8">
+            <h3 className="text-xl font-bold text-white mb-8">Our Impact</h3>
+            <div className="space-y-7">
+              {stats.map(s => (
+                <div key={s.label}>
+                  <div className="flex justify-between items-center mb-2.5">
+                    <span className="text-slate-400 text-sm">{s.label}</span>
+                    <span className={`text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${s.gradient}`}>
+                      {s.value}
+                    </span>
+                  </div>
+                  <div className="progress-bar">
+                    <div
+                      className={`progress-fill bg-gradient-to-r ${s.gradient}`}
+                      style={{ width: `${s.pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Lessons Completed</span>
-                <span className="text-2xl font-bold text-blue-600">15,000+</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-green-500 w-full"></div>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Expert Instructors</span>
-                <span className="text-2xl font-bold text-green-600">150+</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-500 to-yellow-500 w-3/5"></div>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Satisfaction Rate</span>
-                <span className="text-2xl font-bold text-yellow-600">98%</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-yellow-500 to-red-500 w-full"></div>
-              </div>
+            {/* CTA inside card */}
+            <div className="mt-10 p-5 rounded-xl bg-gradient-to-br from-purple-600/15 to-cyan-500/10 border border-purple-500/20">
+              <p className="text-white font-semibold mb-1">Ready to start?</p>
+              <p className="text-slate-400 text-sm mb-4">Join 2,500+ students already learning on HarmonicCampus.</p>
+              <a href="#home" className="btn-primary text-sm !py-2.5 inline-block text-center w-full">
+                Get Started Free
+              </a>
             </div>
           </div>
         </div>
